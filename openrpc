@@ -1,0 +1,1419 @@
+openrpc: 1.2.4
+info:
+  title: JSON-RPC API
+  version: 1.0.0
+  description: >-
+    This section provides an interactive reference for MetaMask's Wallet
+    JSON-RPC API. The API builds on a set of standard Ethereum methods with
+    MetaMask-specific enhancements, and is designed for seamless integration
+    into dapps.
+methods:
+  - name: wallet_addEthereumChain
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+      - $ref: '#/components/tags/Multichain'
+    summary: Adds an Ethereum chain to the wallet.
+    description: >-
+      Creates a confirmation asking the user to add the specified chain to the
+      wallet application. The caller must specify a chain ID and some chain metadata.
+      Specified by [EIP-3085](https://eips.ethereum.org/EIPS/eip-3085).
+    params:
+      - name: Chain
+        schema:
+          $ref: '#/components/schemas/AddEthereumChainParameter'
+    errors:
+      - code: -32602
+        message: >-
+          Expected null or array with at least one valid string HTTPS URL
+          'blockExplorerUrl'. Received: ${blockExplorerUrls}
+      - code: -32602
+        message: >-
+          Expected 0x-prefixed, unpadded, non-zero hexadecimal string 'chainId'.
+          Received:
+
+          ${chainId}
+      - code: -32602
+        message: >-
+          Invalid chain ID "${_chainId}": numerical value greater than max safe
+          value. Received:
+
+          ${chainId}
+      - code: -32602
+        message: May not specify default MetaMask chain.
+      - code: -32602
+        message: |-
+          Expected 2-6 character string 'nativeCurrency.symbol'. Received:
+          ${ticker}
+      - code: -32602
+        message: >-
+          nativeCurrency.symbol does not match currency symbol for a network the
+          user already has added with the same chainId. Received:
+
+          ${ticker}
+    result:
+      name: Null response
+      description: This method returns `null` if the chain is added.
+      schema:
+        type: 'null'
+    examples:
+      - name: wallet_addEthereumChain example
+        params:
+          - name: Chain
+            value:
+              chainId: '0x64'
+              chainName: Gnosis
+              rpcUrls:
+                - 'https://rpc.gnosischain.com'
+              iconUrls:
+                - 'https://xdaichain.com/fake/example/url/xdai.svg'
+                - 'https://xdaichain.com/fake/example/url/xdai.png'
+              nativeCurrency:
+                name: XDAI
+                symbol: XDAI
+                decimals: 18
+              blockExplorerUrls:
+                - 'https://blockscout.com/poa/xdai/'
+        result:
+          name: Null response
+          value: 'null'
+  - name: wallet_switchEthereumChain
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+    summary: Switches the wallet's active Ethereum chain.
+    description: >-
+      Requests that the wallet switches its active Ethereum chain. Specified by
+      [EIP-3326](https://eips.ethereum.org/EIPS/eip-3326).
+    params:
+      - name: Chain
+        schema:
+          title: Chain
+          description: Object containing the chain ID to switch to.
+          type: object
+          required:
+            - chainId
+          properties:
+            chainId:
+              description: >-
+                The chain ID as a `0x`-prefixed hexadecimal string, as returned by the
+                `eth_chainId` method.
+              type: string
+    result:
+      name: Null response
+      description: This method returns `null` if the active chain is switched.
+      schema:
+        type: 'null'
+    errors:
+      - code: 4902
+        message: >-
+          Unrecognized chain ID. Try adding the chain using
+          wallet_addEthereumChain first.
+    examples:
+      - name: wallet_switchEthereumChain example
+        params:
+          - name: Chain
+            value:
+              chainId: '0x64'
+        result:
+          name: Null response
+          value: 'null'
+  - name: wallet_getPermissions
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+    summary: Gets the user's permissions.
+    description: >-
+      Gets the user's permissions. Specified by
+      [EIP-2255](https://eips.ethereum.org/EIPS/eip-2255).
+    params: []
+    result:
+      name: Permissions list
+      schema:
+        $ref: '#/components/schemas/PermissionsList'
+    examples:
+      - name: wallet_getPermissions example
+        params: []
+        result:
+          name: Permission list
+          value:
+            eth_accounts: {}
+  - name: wallet_requestPermissions
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+    summary: Requests additional permissions.
+    description: >-
+      Requests additional permissions from the user. This method accepts
+      a single permission per call. Specified by
+      [EIP-2255](https://eips.ethereum.org/EIPS/eip-2255).
+    params:
+      - name: Permission
+        required: true
+        schema:
+          title: Permission
+          description: Object containing the permission to request.
+          type: object
+          properties:
+            permission_name:
+              type: object
+              description: >-
+                The permission object. `permission_name` is the name of the permission
+                being requested.
+              additionalProperties: true
+    result:
+      name: Permissions list
+      schema:
+        $ref: '#/components/schemas/PermissionsList'
+    examples:
+      - name: >-
+          wallet_requestPermissions example
+        params:
+          - name: Permission
+            value:
+              eth_accounts: {}
+        result:
+          name: Permission list
+          value:
+            eth_accounts: {}
+    errors:
+      - $ref: '#/components/errors/UserRejected'
+  - name: wallet_revokePermissions
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+      - $ref: '#/components/tags/Experimental'
+    summary: Revokes the current dapp permissions.
+    description: >-
+      Revokes previously granted permissions for the current dapp identified by its
+      origin. This method accepts a single permission per call. Specified by
+      [MIP-2](https://github.com/MetaMask/metamask-improvement-proposals/blob/main/MIPs/mip-2.md)
+      and only available for the MetaMask browser extension.
+    params:
+      - name: Permission
+        required: true
+        schema:
+          title: Permission
+          description: Object containing the permission to revoke.
+          type: object
+          properties:
+            permission_name:
+              type: object
+              description: >-
+                The permission object. `permission_name` is the name of the permission
+                being revoked.
+              additionalProperties: true
+    result:
+      name: Null response
+      description: This method returns `null` if the permission is revoked.
+      schema:
+        type: 'null'
+    errors: []
+    examples:
+      - name: >-
+          wallet_revokePermissions example
+        params:
+          - name: Permission
+            value:
+              eth_accounts: {}
+        result:
+          name: Null response
+          value: 'null'
+  - name: personal_sign
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+      - $ref: '#/components/tags/Restricted'
+      - $ref: '#/components/tags/Multichain'
+    summary: Presents a plain text signature challenge to the user.
+    description: >-
+      Presents a plain text signature challenge to the user and returns the
+      signed response. Prepends a safe prefix to the signed message to prevent the challenge
+      tricking users into signing a financial transaction.
+      <br><br>
+      MetaMask implements `personal_sign` similarly to the Go Ethereum client's `eth_sign`
+      implementation. MetaMask's `personal_sign` doesn't accept a password.
+      <br><br>
+      This method requires that the user has granted permission to interact
+      with their account first, so make sure to call `eth_requestAccounts` (recommended)
+      or `wallet_requestPermissions` first.
+    deprecated: false
+    params:
+      - name: Challenge
+        required: true
+        description: >-
+          A hex-encoded UTF-8 string to present to the user. See how to encode a
+          string like this in the
+          [`browser-string-hexer`](https://github.com/danfinlay/browser-string-hexer)
+          module.
+        schema:
+          type: string
+          pattern: '^0x[a-fA-F\d]+$'
+      - name: Address
+        required: true
+        description: The address of the requested signing account.
+        schema:
+          type: string
+          pattern: '^0x[0-9a-fA-F]{40}$'
+    result:
+      name: Signature
+      description: A hex-encoded signature.
+      schema:
+        type: string
+        pattern: '^0x[0-9a-f]*$'
+    examples:
+      - name: personal_sign example
+        params:
+          - name: Challenge
+            value: '0x506c65617365207369676e2074686973206d65737361676520746f20636f6e6669726d20796f7572206964656e746974792e'
+          - name: Address
+            value: '0x4B0897b0513FdBeEc7C469D9aF4fA6C0752aBea7'
+        result:
+          name: Signature
+          value: '0x43d7215ebe96c09a5adac69fc76dea5647286b501954ea273e417cf65e6c80e1db4891826375a7de02467a3e01caf125f64c851a8e9ee9467fd6f7e83523b2115bed8e79d527a85e28a36807d79b85fc551b5c15c1ead2e43456c31f565219203db2aed86cb3601b33ec3b410836d4be7718c6148dc9ac82ecc0a04c5edecd8914'
+  - name: eth_signTypedData_v4
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+      - $ref: '#/components/tags/Restricted'
+      - $ref: '#/components/tags/Multichain'
+    summary: Presents a structured data message for the user to sign.
+    description: >-
+      Presents a data message for the user to sign in a structured and readable
+      format and returns the signed response. Introduced by
+      [EIP-712](https://eips.ethereum.org/EIPS/eip-712).
+      This method requires that the user has granted permission to interact with their account first,
+      so make sure to call `eth_requestAccounts` (recommended) or `wallet_requestPermissions` first.
+    params:
+      - name: Address
+        required: true
+        description: The address of the requested signing account.
+        schema:
+          type: string
+          pattern: '^0x[0-9a-fA-F]{40}$'
+      - name: Typed data
+        required: true
+        schema:
+          $ref: '#/components/schemas/TypedData'
+    result:
+      name: Signature
+      description: A hex-encoded signature.
+      schema:
+        type: string
+        pattern: '^0x[0-9a-f]*$'
+    examples:
+      - name: eth_SignTypedData_v4 example
+        params:
+          - name: Address
+            value: '0x0000000000000000000000000000000000000000'
+          - name: Typed data
+            value:
+              types:
+                EIP712Domain:
+                  - name: name
+                    type: string
+                  - name: version
+                    type: string
+                  - name: chainId
+                    type: uint256
+                  - name: verifyingContract
+                    type: address
+                Person:
+                  - name: name
+                    type: string
+                  - name: wallet
+                    type: address
+                Mail:
+                  - name: from
+                    type: Person
+                  - name: to
+                    type: Person
+                  - name: contents
+                    type: string
+              primaryType: Mail
+              domain:
+                name: Ether Mail
+                version: '1'
+                chainId: 1
+                verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC'
+              message:
+                from:
+                  name: Cow
+                  wallet: '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826'
+                to:
+                  name: Bob
+                  wallet: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB'
+                contents: 'Hello, Bob!'
+        result:
+          name: Signature
+          value: >-
+            0x4355c47d63924e8a72e509b65029052eb6c299d53a04e167c5775fd466751c9d07299936d304c153f6443dfa05f40ff007d72911b6f72307f996231605b915621c
+  - name: wallet_registerOnboarding
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+      - $ref: '#/components/tags/Multichain'
+    summary: Redirects the user back to the site after onboarding.
+    description: >-
+      Registers the requesting site with MetaMask as the initiator of
+      onboarding, enabling MetaMask to redirect the user back to the site after
+      onboarding. Returns a promise that resolves to `true`, or rejects the request if
+      there's an error. Instead of calling this method directly, you should use
+      the
+      [`@metamask/onboarding`](https://github.com/MetaMask/metamask-onboarding)
+      library.
+    params: []
+    result:
+      name: Registered
+      description: '`true` if the request was successful, `false` otherwise.'
+      schema:
+        type: boolean
+    examples:
+      - name: wallet_registerOnboarding example
+        params: []
+        result:
+          name: Registered
+          value: true
+  - name: wallet_watchAsset
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+      - $ref: '#/components/tags/Experimental'
+      - $ref: '#/components/tags/Multichain'
+    summary: Tracks a token in MetaMask.
+    description: >-
+      Requests that the user track the specified token in MetaMask. Returns a
+      boolean indicating if the token was successfully added. Once added, the
+      token is indistinguishable from those added using legacy methods, such as
+      a centralized registry. Introduced by
+      [EIP-747](https://eips.ethereum.org/EIPS/eip-747).
+    paramStructure: by-name
+    params:
+      - name: type
+        schema:
+          type: string
+          description: >-
+            The token type (`ERC20`, `ERC721`, or `ERC1155`). Support for ERC-721
+            and ERC-1155 tokens is experimental and currently only available on
+            the extension (not on mobile). See
+            [MIP-1](https://github.com/MetaMask/metamask-improvement-proposals/blob/main/MIPs/mip-1.md)
+            and the [MIP proposal
+            lifecycle](https://github.com/MetaMask/metamask-improvement-proposals/blob/main/PROCESS-GUIDE.md#proposal-lifecycle)
+            for more information.
+          enum:
+            - ERC20
+            - ERC721
+            - ERC1155
+        required: true
+      - name: options
+        schema:
+          description: An object containing information about the token.
+          type: object
+          required:
+            - address
+          properties:
+            address:
+              description: The address of the token contract.
+              type: string
+            symbol:
+              description: >-
+                A ticker symbol or shorthand, up to 11 characters (optional for
+                ERC-20 tokens).
+              minLength: 2
+              maxLength: 11
+              type: string
+            decimals:
+              description: The number of token decimals (optional for ERC-20 tokens).
+              type: number
+            image:
+              description: A string URL of the token logo (optional for ERC-20 tokens).
+              type: string
+            tokenId:
+              description: >-
+                The unique identifier of the NFT (required for ERC-721 and
+                ERC-1155 tokens).
+              type: string
+    errors:
+      - code: -32602
+        message: 'Must specify address, symbol, and decimals.'
+      - code: -32602
+        message: 'Invalid symbol: not a string.'
+      - code: -32602
+        message: 'Invalid symbol ''${symbol}'': longer than 11 characters.'
+      - code: -32602
+        message: 'Invalid decimals ''${decimals}'': must be 0 <= 36.'
+      - code: -32602
+        message: 'Invalid address ''${address}''.'
+      - code: -32602
+        message: Asset type is required.
+      - code: -32602
+        message: Both address and tokenId are required.
+      - code: -32602
+        message: Invalid address.
+      - code: -32000
+        message: Suggested NFT is not owned by the selected account.
+      - code: -32000
+        message: >-
+          Suggested NFT of type ${standard} does not match received type
+          ${type}.
+      - code: -32002
+        message: >-
+          Unable to verify ownership. Possibly because the standard is not
+          supported or the user's currently selected network does not match the
+          chain of the asset in question.
+    result:
+      name: Added
+      description: '`true` if the token was added, `false` otherwise.'
+      schema:
+        type: boolean
+    examples:
+      - name: wallet_watchAsset ERC-20 example
+        params:
+          - name: type
+            value: ERC20
+          - name: options
+            value:
+              address: '0xb60e8dd61c5d32be8058bb8eb970870f07233155'
+              symbol: FOO
+              decimals: 18
+              image: 'https://foo.io/token-image.svg'
+        result:
+          name: Added
+          value: true
+      - name: wallet_watchAsset ERC-721 example
+        params:
+          - name: type
+            value: ERC721
+          - name: options
+            value:
+              address: '0x123456789abcdef0123456789abcdef01234567'
+              tokenId: '42'
+        result:
+          name: Added
+          value: true
+      - name: wallet_watchAsset ERC-1155 example
+        params:
+          - name: type
+            value: ERC1155
+          - name: options
+            value:
+              address: '0xabcdef0123456789abcdef0123456789abcdef01'
+              tokenId: '1337'
+        result:
+          name: Added
+          value: true
+  - name: wallet_scanQRCode
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+      - $ref: '#/components/tags/Mobile'
+      - $ref: '#/components/tags/Multichain'
+    summary: Requests that the user scan a QR code.
+    description: >-
+      Requests that the user scan a QR code using their device camera.
+      Introduced by [EIP-945](https://github.com/ethereum/EIPs/issues/945).
+    params:
+      - name: Regex
+        required: false
+        description: >-
+          A regular expression (regex) string for matching arbitrary QR code
+          strings.
+        schema:
+          type: string
+          title: regex
+    result:
+      name: QR code string
+      description: >-
+        A string corresponding to the scanned QR code. If a regex string is
+        provided, the resulting string matches it. If no regex string is
+        provided, the resulting string matches an Ethereum address. If neither
+        condition is met, the method returns an error.
+      schema:
+        type: string
+        title: QR code string
+  - name: wallet_sendCalls
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+    summary: Sends a batch of calls.
+    description: >-
+      Requests that the wallet submits a batch of calls. Specified by
+      [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792).
+    params:
+      - name: Calls
+        required: true
+        schema:
+          $ref: '#/components/schemas/SendCallsParameter'
+    result:
+      name: Batch result
+      schema:
+        description: An object containing information about the sent batch.
+        type: object
+        properties:
+          id:
+            description: The ID of the batch of calls.
+            type: string
+          capabilities:
+            description: >-
+              Wallets can use this object to attach capability-specific metadata.
+            type: object
+    errors:
+      - $ref: '#/components/errors/InvalidParams'
+      - code: -32000
+        message: Version not supported.
+      - $ref: '#/components/errors/UserRejected'
+      - $ref: '#/components/errors/Unauthorized'
+      - code: 5700
+        message: >-
+          The wallet does not support a capability that was not marked as optional.
+      - code: 5710
+        message: EIP-7702 not supported on the specified chain ID.
+      - code: 5720
+        message: There is already a batch submitted with the specified batch ID.
+      - code: 5740
+        message: The batch is too large for the wallet to process.
+      - code: 5750
+        message: EIP-7702 upgrade rejected for this chain and account.
+    examples:
+      - name: wallet_sendCalls example
+        params:
+          - name: Calls
+            value:
+              version: '2.0.0'
+              from: '0xd46e8dd67c5d32be8058bb8eb970870f07244567'
+              chainId: '0xaa36a7'
+              atomicRequired: true
+              calls:
+                - to: '0x54f1C1965B355e1AB9ec3465616136be35bb5Ff7'
+                  value: '0x0'
+                - to: '0x2D48e6f5Ae053e4E918d2be53570961D880905F2'
+                  value: '0x0'
+        result:
+          name: Batch result
+          value:
+            id: '0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331'
+  - name: wallet_getCallsStatus
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+    summary: Gets the status of a call batch.
+    description: >-
+      Gets the status of a batch of calls that was previously sent using
+      `wallet_sendCalls`. Specified by
+      [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792).
+    params:
+      - name: Batch ID
+        required: true
+        description: >-
+          The ID of a batch of calls (the `id` value returned by `wallet_sendCalls`).
+        schema:
+          type: string
+    result:
+      name: Batch status
+      schema:
+        description: >-
+          An object containing status information of the batch of calls.
+        type: object
+        properties:
+          version:
+            description: The version of the API format.
+            type: string
+          id:
+            description: The ID of the batch of calls.
+            $ref: '#/components/schemas/uint'
+          chainId:
+            description: The chain ID of the calls.
+            $ref: '#/components/schemas/uint'
+          status:
+            description: >-
+              The status code of the batch of calls. Possible values are:
+              <br>
+              <ul>
+                <li>`100` - Pending</li>
+                <li>`200` - Confirmed</li>
+                <li>`400` - Failed offchain</li>
+                <li>`500` - Reverted</li>
+                <li>`600` - Partially reverted</li>
+              </ul>
+            type: number
+          atomic:
+            description: >-
+              `true` if the wallet executed the calls atomically. `false` if the
+              wallet executed the calls non-atomically.
+            type: boolean
+          receipts:
+            description: >-
+              An array of transaction receipts. If the wallet executed the calls
+              atomically, a single receipt or an array of receipts may be returned,
+              corresponding to how the batch of calls were included onchain.
+            type: array
+            items:
+              title: Receipt
+              description: A transaction receipt object.
+              type: object
+              properties:
+                logs:
+                  description: An array of log objects.
+                  type: array
+                  items:
+                    title: Log
+                    description: An object containing information about the log.
+                    type: object
+                    properties:
+                      address:
+                        description: The address that generated the log.
+                        type: string
+                        pattern: '^0x[0-9a-fA-F]{40}$'
+                      data:
+                        description: The data of the log.
+                        type: string
+                        pattern: '^0x[0-9a-f]*$'
+                      topics:
+                        description: An array of log topics.
+                        type: array
+                        items:
+                          title: Topic
+                          description: A log topic.
+                          type: string
+                          pattern: '^0x[0-9a-f]*$'
+                status:
+                  description: >-
+                    The status of the transaction. `0x1` indicates success, and `0x0`
+                    indicates failure.
+                  type: string
+                  pattern: '^0x[0-1]$'
+                blockHash:
+                  description: The hash of the block containing the transaction.
+                  type: string
+                  pattern: '^0x[0-9a-f]{64}$'
+                blockNumber:
+                  description: The number of the block containing the transaction.
+                  type: string
+                  pattern: '^0x([1-9a-f]+[0-9a-f]*|0)$'
+                gasUsed:
+                  description: The amount of gas used by the transaction.
+                  type: string
+                  pattern: '^0x([1-9a-f]+[0-9a-f]*|0)$'
+                transactionHash:
+                  description: The hash of the transaction.
+                  type: string
+                  pattern: '^0x[0-9a-f]{64}$'
+              additionalProperties: true
+          capabilities:
+            description: Capabilities associated with the batch of calls.
+            type: object
+            additionalProperties: true
+    errors:
+      - $ref: '#/components/errors/InvalidParams'
+      - $ref: '#/components/errors/Unauthorized'
+      - code: 5730
+        message: No matching bundle found.
+    examples:
+      - name: wallet_getCallsStatus example
+        params:
+          - name: Batch ID
+            value: '0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331'
+        result:
+          name: Batch status
+          value:
+            version: '2.0.0'
+            chainId: '0xaa36a7'
+            id: '0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331'
+            status: 200
+            atomic: true
+            receipts:
+              - logs:
+                  - address: '0xa922b54716264130634d6ff183747a8ead91a40b'
+                    topics:
+                      - '0x5a2a90727cc9d000dd060b1132a5c977c9702bb3a52afe360c9c22f0e9451a68'
+                    data: '0xabcd'
+                status: '0x1'
+                blockHash: '0xf19bbafd9fd0124ec110b848e8de4ab4f62bf60c189524e54213285e7f540d4a'
+                blockNumber: '0xabcd'
+                gasUsed: '0xdef'
+                transactionHash: '0x9b7bb827c2e5e3c1a0a44dc53e573aa0b3af3bd1f9f5ed03071b100bb039eaff'
+  - name: wallet_getCapabilities
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+    summary: Gets the capabilities of the wallet.
+    description: >-
+      Returns information about the wallet's support for the `atomic`
+      capability. The `atomic` capability specifies how the wallet will
+      execute batches of transactions sent using `wallet_sendCalls`.
+      `wallet_getCapabilities` is specified by
+      [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792).
+    params:
+      - name: Address
+        description: A wallet address.
+        required: true
+        schema:
+          type: string
+          pattern: '^0x[0-9a-fA-F]{40}$'
+      - name: Chain IDs
+        description: An array of chain IDs to get capabilities for.
+        schema:
+          type: array
+          items:
+            title: Chain ID
+            description: >-
+              An [EIP-155](https://eips.ethereum.org/EIPS/eip-155)
+              chain ID in hexadecimal format.
+            $ref: '#/components/schemas/uint'
+    result:
+      name: Capabilities
+      schema:
+        description: >-
+          An object specifying the status of the `atomic` capability for
+          specific [EIP-155](https://eips.ethereum.org/EIPS/eip-155) chain IDs.
+          For each chain, the `atomic` capability can have a `status` of:
+          <br>
+          <ul>
+            <li>`supported` - The wallet will execute calls sent using
+                  `wallet_sendCalls` atomically.</li>
+            <li>`ready` - The wallet can upgrade to `supported` pending user
+                    approval to upgrade their account via EIP-7702.</li>
+          </ul>
+          If the `atomic` capability is not `supported` or `ready` for a
+          specified chain ID, the wallet will not return anything for that chain ID.
+        type: object
+    errors:
+      - $ref: '#/components/errors/InvalidParams'
+      - $ref: '#/components/errors/Unauthorized'
+    examples:
+      - name: wallet_getCapabilities example
+        params:
+          - name: Address
+            value: '0xd46e8dd67c5d32be8058bb8eb970870f07244567'
+          - name: Chain IDs
+            value:
+              - '0xaa36a7'
+        result:
+          name: Capabilities
+          value:
+            '0xaa36a7':
+              atomic:
+                status: ready
+  - name: eth_requestAccounts
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+    description: >-
+      Requests that the user provide access to one or more Ethereum addresses.
+      This method is specified by
+      [EIP-1102](https://eips.ethereum.org/EIPS/eip-1102). Internally, this
+      method calls `wallet_requestPermissions` for permission to call
+      `eth_accounts`.
+    summary: Requests that the user provide access to addresses.
+    params: []
+    result:
+      name: Address list
+      schema:
+        type: array
+        description: >-
+          An array of Ethereum addresses that the user has authorized the dapp
+          to access.
+        items:
+          title: Address
+          description: A hex-encoded address.
+          type: string
+          pattern: '^0x[0-9a-fA-F]{40}$'
+    errors:
+      - $ref: '#/components/errors/UserRejected'
+    examples:
+      - name: eth_requestAccounts example
+        params: []
+        result:
+          name: Address list
+          value:
+            - '0xa77392123a1085f75e62eec7dea7e0e1e5142d5f'
+  - name: eth_accounts
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+      - $ref: '#/components/tags/Restricted'
+    description: >-
+      Returns a list of addresses that the user has authorized the dapp to access.
+      This method requires calling `wallet_requestPermissions` for permission.
+      We recommend using `eth_requestAccounts`, which internally calls `wallet_requestPermission`.
+    summary: Gets a list of authorized addresses.
+    params: []
+    result:
+      name: Address list
+      schema:
+        type: array
+        description: >-
+          An array of Ethereum addresses that the user has authorized the dapp
+          to access.
+        items:
+          title: Address
+          description: A hex-encoded address.
+          type: string
+          pattern: '^0x[0-9a-fA-F]{40}$'
+    examples:
+      - name: eth_accounts example
+        params: []
+        result:
+          name: Address list
+          value:
+            - '0xa77392123a1085f75e62eec7dea7e0e1e5142d5f'
+  - name: eth_sendTransaction
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+      - $ref: '#/components/tags/Restricted'
+      - $ref: '#/components/tags/Multichain'
+    description: >-
+      Creates a new wallet confirmation to make an Ethereum transaction from the
+      user's account. This method requires that the user has granted permission
+      to interact with their account first, so make sure to call `eth_requestAccounts` (recommended)
+      or `wallet_requestPermissions` first.
+    summary: Initiates a new transaction.
+    params:
+      - name: Transaction
+        required: true
+        description: The transaction object to sign and send.
+        schema:
+          type: object
+          title: Transaction
+          description: >-
+            The parameters to customize a transaction. If a `to` address is not
+            provided, the transaction is assumed to be a contract
+            creation transaction, and the `data` field is
+            used as the contract initialization code. `gasPrice` cannot be
+            used together with `maxPriorityFeePerGas` and `maxFeePerGas`.
+          required:
+            - from
+          if:
+            properties:
+              to:
+                not:
+                  type: string
+          then:
+            required:
+              - data
+          properties:
+            to:
+              description: The recipient's address.
+              $ref: '#/components/schemas/address'
+            from:
+              description: The sender's address.
+              $ref: '#/components/schemas/address'
+            gas:
+              description: >-
+                The maximum amount of gas the transaction is allowed to use.
+              $ref: '#/components/schemas/uint'
+            value:
+              description: The amount to transfer in wei.
+              $ref: '#/components/schemas/uint'
+            data:
+              description: >-
+                The data to include in the transaction. Used for contract
+                creation transactions.
+              $ref: '#/components/schemas/bytes'
+            gasPrice:
+              description: >-
+                The gas price the sender is willing to pay to miners in wei.
+                Used in pre-1559 transactions.
+              $ref: '#/components/schemas/uint'
+            maxPriorityFeePerGas:
+              description: >-
+                Maximum fee per gas the sender is willing to pay to miners in
+                wei. Used in 1559 transactions.
+              $ref: '#/components/schemas/uint'
+            maxFeePerGas:
+              description: >-
+                The maximum total fee per gas the sender is willing to pay
+                (includes the network / base fee and miner / priority fee) in
+                wei. Used in 1559 transactions.
+              $ref: '#/components/schemas/uint'
+    result:
+      name: Transaction hash
+      description: The transaction hash of the sent transaction.
+      schema:
+        type: string
+        pattern: '^0x[0-9a-f]{64}$'
+    errors:
+      - code: 4100
+        message: >-
+          The requested account and/or method has not been authorized by the user.
+    examples:
+      - name: sendTransaction
+        params:
+          - name: Transaction
+            value:
+              to: '0x4B0897b0513FdBeEc7C469D9aF4fA6C0752aBea7'
+              from: '0xDeaDbeefdEAdbeefdEadbEEFdeadbeefDEADbEEF'
+              gas: '0x76c0'
+              value: '0x8ac7230489e80000'
+              data: '0x'
+              gasPrice: '0x4a817c800'
+        result:
+          name: eth_sendTransactionExampleResult
+          value: '0x4e306b5a5a37532e1734503f7d2427a86f2c992fbe471f5be403b9f734e667c8'
+  - name: eth_decrypt
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+      - $ref: '#/components/tags/Restricted'
+      - $ref: '#/components/tags/Deprecated'
+    summary: Decrypts an encrypted message.
+    description: |-
+      This method is deprecated and may be removed in the future.
+
+       Requests that MetaMask decrypt the specified encrypted message.
+       The message must have been encrypted using the public encryption key of the specified Ethereum address.
+       Returns a promise that resolves to the decrypted message, or rejects if the decryption attempt fails.
+    params:
+      - name: EncryptedMessage
+        required: true
+        description: The encrypted message to decrypt.
+        schema:
+          type: string
+      - name: Address
+        required: true
+        description: The address of the Ethereum account that can decrypt the message.
+        schema:
+          $ref: '#/components/schemas/address'
+    result:
+      name: PermissionsList
+      schema:
+        $ref: '#/components/schemas/PermissionsList'
+    errors:
+      - code: 4100
+        message: >-
+          The requested account and/or method has not been authorized by the user.
+    examples:
+      - name: decryptExample
+        params:
+          - name: EncryptedMessage
+            value: '0x7b2276657273696f6e223a227832353531392d7873616c736132302d706f6c7931333035222c226e6f6e6365223a2243533967507076467071765358704655416679726a7179774e35302b7a747766222c22657068656d5075626c69634b6579223a224372774b61456d2f4b356d6d714239764c376f5872636d6441417757764479324f784c3333527135576e553d222c2263697068657274657874223a2248347a65336e7177572b753174663956343945506167454e343872774f766b6952676244566e47587a38493d227d'
+          - name: Address
+            value: '0xD1F5279BE4B4dD94133A23deE1B23F5bfC0Db1d0'
+        result:
+          name: eth_decryptExampleResult
+          value: 'Hello, Ethereum!'
+  - name: eth_getEncryptionPublicKey
+    tags:
+      - $ref: '#/components/tags/MetaMask'
+      - $ref: '#/components/tags/Restricted'
+      - $ref: '#/components/tags/Deprecated'
+    summary: Gets a public key used for encryption.
+    description: |-
+      This method is deprecated and may be removed in the future.
+
+       Requests that the user share their public encryption key.
+       Returns a public encryption key, or rejects if the user denies the request.
+       The public key is computed from entropy associated with the specified user account, using the NaCl implementation of the `X25519_XSalsa20_Poly1305` algorithm.
+    params:
+      - name: Address
+        required: true
+        description: The address of the Ethereum account that can decrypt the message.
+        schema:
+          $ref: '#/components/schemas/address'
+    result:
+      name: EncryptionKey
+      schema:
+        type: string
+    examples:
+      - name: eth_getEncryptionPublicKey
+        params:
+          - name: Address
+            value: '0x4B0897b0513FdBeEc7C469D9aF4fA6C0752aBea7'
+        result:
+          name: eth_getEncryptionPublicKeyExampleResult
+          value: '0x04bfcab3b7ca7e8b3f3b62b2f7f77e9e4b68080bbf8f0f4a1c8f890864d2c7c1d3c45d8b2e3f5f1c27dfeea4c2f5733e90bfc7484e2a690aa9b8ac4559d2e6a8d7'
+  - name: web3_clientVersion
+    tags:
+      - $ref: '#/components/tags/Ethereum'
+      - $ref: '#/components/tags/Multichain'
+    description: >-
+      Returns the current MetaMask client version. This differs slightly per
+      client. For example, the browser extension returns a string like
+      `MetaMask/v10.33.1`, while the mobile app returns a string like
+      `MetaMask/8.1.2/Mobile`.
+    summary: Current client version.
+    params: []
+    examples:
+      - name: MetaMaskClientVersionExample
+        description: Example version response from MetaMask.
+        params: []
+        result:
+          name: MetaMaskClientVersion
+          description: The current client version.
+          value: MetaMask/v10.33.1
+      - name: MetaMaskMobileClientVersionExample
+        description: Example version response from MetaMask Mobile.
+        params: []
+        result:
+          name: MetaMaskClientVersion
+          description: The current client version.
+          value: MetaMask/8.1.2/Mobile
+    result:
+      name: CurrentVersion
+      description: The current client version.
+      schema:
+        title: CurrentClientVersion
+        type: string
+  - name: eth_subscribe
+    tags:
+      - $ref: '#/components/tags/Ethereum'
+      - $ref: '#/components/tags/Multichain'
+    summary: >-
+      Subscribes to specific Ethereum events, returning a subscription ID used
+      to receive notifications.
+    description: >-
+      Subscribes to specific events on the Ethereum network, such as new blocks,
+      or logs. When an event occurs, a notification is sent to the client with the corresponding
+      data. To stop receiving notifications, the client can unsubscribe using
+      `eth_unsubscribe`.
+    params:
+      - name: subscriptionType
+        required: true
+        schema:
+          title: subscriptionType
+          type: string
+          enum:
+            - newHeads
+            - logs
+          description: |-
+            The type of subscription to create. Must be one of the following:
+            1. `newHeads` - New block headers.
+            2. `logs` - Logs matching a filter object.
+      - name: filterOptions
+        required: false
+        schema:
+          title: filterOptions
+          type: object
+          description: >-
+            (Optional) An object containing filter options specific to the
+            subscription type. Only applicable for the `logs` subscription type.
+          required:
+            - topics
+          properties:
+            address:
+              type: string
+              description: >-
+                (Optional) A single address or an array of addresses to filter
+                the logs by.
+            topics:
+              type: array
+              description: An array of topics to filter the logs by.
+              items:
+                type: string
+    result:
+      name: subscriptionId
+      schema:
+        type: string
+      description: >-
+        A unique subscription ID that can be used to unsubscribe or identify
+        incoming notifications.
+    examples:
+      - name: eth_subscribe example
+        params:
+          - name: subscriptionType
+            value: newHeads
+        result:
+          name: eth_subscribeExampleResult
+          value: '0x1b84f2cdf29a204b79e450c1939b30c1'
+  - name: eth_unsubscribe
+    tags:
+      - $ref: '#/components/tags/Ethereum'
+      - $ref: '#/components/tags/Multichain'
+    summary: >-
+      Unsubscribes from a specific Ethereum event, using the subscription ID
+      provided by `eth_subscribe`.
+    description: >-
+      Unsubscribes from specific events on the Ethereum network, to which the
+      client has been previously subscribed using `eth_subscribe`. The client
+      must provide the subscription ID obtained from `eth_subscribe` to stop
+      receiving notifications for the corresponding event.
+    params:
+      - name: subscriptionId
+        required: true
+        schema:
+          type: string
+          description: >-
+            The unique subscription ID obtained from `eth_subscribe`, used to
+            identify the subscription to be unsubscribed.
+    result:
+      name: unsubscribed
+      schema:
+        type: boolean
+      description: A boolean value indicating whether the unsubscription was successful.
+    examples:
+      - name: eth_unsubscribe example
+        params:
+          - name: subscriptionId
+            value: '0x1b84f2cdf29a204b79e450c1939b30c1'
+        result:
+          name: eth_unsubscribeExampleResult
+          value: true
+components:
+  schemas:
+    TypedData:
+      title: Typed data
+      description: Object containing information about the typed data to sign.
+      type: object
+      required:
+        - types
+        - primaryType
+        - domain
+        - message
+      properties:
+        types:
+          type: object
+          description: Object containing type information.
+          required:
+            - EIP712Domain
+          properties:
+            EIP712Domain:
+              type: array
+              items:
+                type: object
+                title: Domain separator value
+                description: Object containing information about the domain separator value.
+                properties:
+                  name:
+                    type: string
+                    description: Name of the domain separator value.
+                  type:
+                    type: string
+                    description: Data type of the domain separator value.
+              description: >-
+                An array specifying one or more of the following domain
+                separator values:
+                <br><br>
+                <ul>
+                  <li>`name` - The user-readable name of the signing domain, that is, the name of the dapp or the protocol.</li>
+                  <li>`version` - The current major version of the signing domain.</li>
+                  <li>`chainId` - The chain ID of the network.</li>
+                  <li>`verifyingContract` - The address of the contract that will verify the signature.</li>
+                  <li>`salt` - A disambiguating salt for the protocol.</li>
+                </ul>
+          additionalProperties:
+            type: array
+            required:
+              - name
+              - type
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+        domain:
+          type: object
+          description: >-
+            Object containing the domain separator values specified in the `EIP712Domain`
+            type.
+        primaryType:
+          type: string
+          description: The primary type of the message.
+        message:
+          type: object
+          description: The message you're proposing the user to sign.
+    SendCallsParameter:
+      title: Calls
+      description: An object containing information about a batch of calls.
+      type: object
+      required:
+        - version
+        - from
+        - chainId
+        - atomicRequired
+        - calls
+      properties:
+        version:
+          description: >-
+            The version of the API format. This must be `2.0.0`.
+          type: string
+        id:
+          description: The ID of the batch of calls.
+          type: string
+        from:
+          description: The sender's address.
+          type: string
+          pattern: '^0x[0-9a-fA-F]{40}$'
+        chainId:
+          description: >-
+            The [EIP-155](https://eips.ethereum.org/EIPS/eip-155) chain ID
+            of the calls. This must match the currently selected network in
+            the wallet.
+          type: string
+          pattern: '^0x([1-9a-f]+[0-9a-f]*|0)$'
+        atomicRequired:
+          description: >-
+            `true` if the wallet must execute all calls atomically. If `false`, the
+            wallet may execute the calls sequentially without atomicity. If `false`
+            and the wallet is capable of executing the calls atomically, it may do so.
+          type: boolean
+        calls:
+          type: array
+          description: An array of call objects.
+          items:
+            title: Call
+            description: An object containing information about the call.
+            type: object
+            properties:
+              to:
+                description: The address of the call's recipient.
+                type: string
+                pattern: '^0x[0-9a-fA-F]{40}$'
+              data:
+                description: The data to send with the call.
+                type: string
+                pattern: '^0x[0-9a-f]*$'
+              value:
+                description: The value to send with the call.
+                type: string
+                pattern: '^0x([1-9a-f]+[0-9a-f]*|0)$'
+              capabilities:
+                description: >-
+                  Dapps can use this object to communicate with the wallet about
+                  supported capabilities.
+                type: object
+        capabilities:
+          description: >-
+            Dapps can use this object to communicate with the wallet about
+            supported capabilities.
+          type: object
+    AddEthereumChainParameter:
+      title: Chain
+      description: Object containing information about the chain to add.
+      type: object
+      required:
+        - chainId
+        - chainName
+        - nativeCurrency
+        - rpcUrls
+      properties:
+        chainId:
+          description: >-
+            The chain ID as a `0x`-prefixed hexadecimal string, per the
+            `eth_chainId` method. MetaMask compares this chain ID value with the
+            `eth_chainId` return value. If these values aren't identical,
+            MetaMask rejects the request.
+          type: string
+        blockExplorerUrls:
+          description: >-
+            (Optional) An array of one or more URLs pointing to block explorer sites for the
+            chain.
+          type: array
+          items:
+            type: string
+            description: Block explorer URL.
+        chainName:
+          description: A human-readable name for the chain.
+          type: string
+        iconUrls:
+          description: >-
+            (Optional) An array of one or more URLs pointing to icons that
+            can be used to visually identify the chain. Note: MetaMask will not
+            currently display these icons. You can still include icon URLs so
+            they are used if MetaMask incorporates them into the display
+            of custom networks in the future.
+          type: array
+          items:
+            format: uri
+            type: string
+            description: Icon URL.
+        nativeCurrency:
+          $ref: '#/components/schemas/NativeCurrency'
+        rpcUrls:
+          description: >-
+            An array of one or more URLs pointing to RPC endpoints that can be used to
+            communicate with the chain. At least one item is required, and only
+            the first item is used.
+          type: array
+          minItems: 1
+          items:
+            format: uri
+            type: string
+            description: RPC URL.
+    NativeCurrency:
+      title: NativeCurrency
+      type: object
+      description: >-
+        An object containing information about the native currency of the chain.
+      required:
+        - decimals
+        - symbol
+      properties:
+        decimals:
+          description: A non-negative integer representing the number of decimals the native currency uses.
+          minimum: 0
+          type: integer
+        name:
+          description: A human-readable name of the native currency.
+          type: string
+        symbol:
+          description: A human-readable symbol of the native currency.
+          type: string
+    Caveats:
+      title: Caveats
+      description: >-
+        An array of caveats that specify restrictions on the permission.
+      type: array
+      items:
+        title: Caveat
+        description: Object containing information about the caveat.
+        type: object
+        properties:
+          type:
+            title: Type
+            type: string
+            description: Type of caveat.
+          value:
+            title: CaveatValue
+            description: Value of the caveat.
+          name:
+            title: Name
+            type: string
+            description: Name of the caveat.
+    Permission:
+      title: Permission
+      description: Object containing information about the permission.
+      type: object
+      properties:
+        id:
+          description: The permission ID.
+          type: string
+        parentCapability:
+          description: >-
+            The name of the permission being granted. For example, `eth_accounts` or
+            `endowment:permitted-chains`.
+          type: string
+        invoker:
+          description: The URI of the dapp being granted this permission.
+          type: string
+        caveats:
+          $ref: '#/components/schemas/Caveats'
+        date:
+          description: The timestamp of the permission request.
+          type: number
+    PermissionsList:
+      title: Permissions list
+      description: An array of the user's permissions.
+      type: array
+      items:
+        $ref: '#/components/schemas/Permission'
+  tags:
+    MetaMask:
+      name: MetaMask
+      description: MetaMask-specific methods.
+    Restricted:
+      name: Restricted
+      description: >-
+        Restricted methods. If a method is restricted, the caller must have the
+        corresponding permission via `wallet_requestPermissions` in order to
+        call it.
+    Mobile:
+      name: Mobile
+      description: Mobile-specific methods.
+    Experimental:
+      name: Experimental
+      description: Experimental methods.
+    Deprecated:
+      name: Deprecated
+      description: Deprecated methods.
+    Ethereum:
+      name: Ethereum API
+      description: Ethereum execution API methods.
+    Multichain:
+      name: Multichain API
+      description: Multichain API methods.
+  errors:
+    UserRejected:
+      code: 4001
+      message: User rejected the request.
+    InvalidParams:
+      code: -32602
+      message: The wallet cannot parse the request.
+    Unauthorized:
+      code: 4100
+      message: The requested account and/or method has not been authorized by the user.
